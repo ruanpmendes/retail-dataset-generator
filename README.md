@@ -1,3 +1,7 @@
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
+![Microsoft Power BI](https://img.shields.io/badge/Microsoft_Power_BI-F2C811?style=for-the-badge&logo=microsoft-power-bi&logoColor=black)
+
 🍷 Empório das Gerações: Dataset & Data Engineering
 Este projeto nasceu para resolver um problema comum entre estudantes de dados: bancos de dados de cursos que são pequenos e "engessados". Aqui, você encontrará um ecossistema completo de um Empório Gourmet, modelado do zero, com um gerador automático de dados em Python que cria um histórico de vendas realista e volumoso para prática de SQL e BI.
 
