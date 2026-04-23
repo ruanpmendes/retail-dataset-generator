@@ -10,7 +10,11 @@ Volume Realista: Chega de tabelas com 10 linhas. O script gera mais de 40.000 pe
 
 Sazonalidade Programada: Os dados não são aleatórios; eles seguem o comportamento do varejo real, com meses de alta (Dezembro/Black Friday) e meses de baixa (Janeiro), ideal para treinar análise de séries temporais.
 
-Modelagem Profissional: Estrutura relacional com 8 tabelas, utilizando Chaves Estrangeiras, Constraints e tipos de dados padronizados.
+Ciclo de Vida Realista (Status): O script compreende a linha do tempo do varejo. Pedidos de meses anteriores já nascem consolidados (Entregues ou Cancelados), enquanto pedidos do mês atual giram de forma dinâmica (Pendentes, Processando, Em Trânsito), perfeito para simular funis de logística.
+
+Regras de Negócio no Motor (Triggers): O banco de dados não é "burro". Ele conta com um sistema de gatilhos automáticos que gerenciam o estoque em tempo real, auditam mudanças de preço e impedem exclusões acidentais (Soft Delete).
+
+Modelagem Profissional: Estrutura relacional normalizada com 10 tabelas, utilizando Chaves Estrangeiras, Constraints e tipos de dados padronizados.
 
 Foco em BI: Dados gerados com distribuição horária e geográfica para prática de mapas de calor e logística.
 
@@ -32,6 +36,10 @@ Clientes & Endereços: Localizações variadas para análise de frete e região.
 
 Vendas (Orders & Items): Tabela transacional rica para análise de faturamento e ticket médio.
 
+Status de Pedidos: Tabela de dimensão isolada para garantir a integridade do ciclo de vida da venda.
+
+Logs de Auditoria: Rastreamento invisível de alterações de preços dos produtos.
+
 📊 Desafios de SQL Inclusos
 O repositório conta com um arquivo queries_analytics.sql contendo 10 problemas de negócio resolvidos, prontos para serem usados como guia de estudo:
 
@@ -42,6 +50,17 @@ Fidelidade: Identificação de clientes recorrentes (Retention).
 Cross-Sell: Análise de eficiência de carrinho (pedidos de item único).
 
 Operação: Identificação de horários de pico (Morning, Afternoon, Evening).
+
+⚙️ Automações e Arquitetura Avançada (Triggers)
+Para simular um ambiente de produção blindado contra falhas humanas, o banco conta com 6 automações (Triggers) integradas nativamente via script:
+
+Gestão de Estoque Dinâmica: Subtrai o estoque automaticamente na venda e realiza o estorno completo caso o pedido seja cancelado ou um item seja removido.
+
+Soft Delete (Trava de Segurança): Intercepta comandos DELETE na tabela de pedidos, bloqueando a exclusão e alterando o status para 'Canceled'.
+
+Data Cleansing On-the-fly: Limpa e padroniza e-mails de clientes (espaços e caixa baixa) no exato milissegundo em que entram no banco.
+
+Auditoria (History Log): Escuta alterações específicas na coluna de preços e grava o histórico de "De/Para" em uma tabela isolada de Logs.
 
 🚀 Como utilizar:
 Clone o repositório: Tenha os arquivos em sua máquina.
