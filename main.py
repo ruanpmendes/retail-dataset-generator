@@ -58,7 +58,7 @@ def create_produtos():
             product_price DECIMAL(10,2) DEFAULT 0.00 CHECK(product_price >= 0.00),
             product_stock DECIMAL(10,2) DEFAULT 0.00 CHECK(product_stock >= 0.00),
             id_category INTEGER,
-            FOREIGN KEY (id_category) REFERENCES category(id_category)
+            CONSTRAINT fk_product_category FOREIGN KEY (id_category) REFERENCES category(id_category)
         );
     ''')
 
@@ -85,9 +85,9 @@ def create_tabela_auxiliar():
             id_supplier INTEGER,
             cost_price DECIMAL(10,2) DEFAULT 0.00 CHECK(cost_price >= 0.00),
             last_purchase_date DATETIME DEFAULT (CURRENT_TIMESTAMP),
-            PRIMARY KEY (id_product, id_supplier),
-            FOREIGN KEY (id_product) REFERENCES product(id_product),
-            FOREIGN KEY (id_supplier) REFERENCES supplier(id_supplier)
+            CONSTRAINT pk_product_supplier PRIMARY KEY (id_product, id_supplier),
+            CONSTRAINT fk_productsupplier_product FOREIGN KEY (id_product) REFERENCES product(id_product),
+            CONSTRAINT fk_productsupplier_supplier FOREIGN KEY (id_supplier) REFERENCES supplier(id_supplier)
         );
     ''')
 
@@ -105,6 +105,15 @@ def create_clientes():
         );
     ''')
 
+# Tabela de status
+def create_status():
+    cursor.execute('''
+        CREATE TABLE order_status (
+            id_status INTEGER PRIMARY KEY AUTOINCREMENT,
+            status VARCHAR(30) UNIQUE NOT NULL
+        );
+    ''')
+
 # Tabela de endereços
 # Separei dos clientes porque um cliente poderia ter mais de um endereço no futuro
 def create_enderecos():
@@ -117,19 +126,22 @@ def create_enderecos():
             neighborhood VARCHAR(100),
             city VARCHAR(100),
             state VARCHAR(50),
-            FOREIGN KEY (id_customer) REFERENCES customer(id_customer)
+            CONSTRAINT fk_address_customer FOREIGN KEY (id_customer) REFERENCES customer(id_customer)
         );
     ''')
 
 # Tabela de pedidos
 # Cada pedido pertence a um cliente e tem a data/hora registrada automaticamente
+# id_status do pedido, como padrão, se não for passado nenhum valor, será inserido o id_status de Pending(pendente)
 def create_pedidos():
     cursor.execute('''
         CREATE TABLE orders (
             id_order INTEGER PRIMARY KEY AUTOINCREMENT,
             id_customer INTEGER,
             order_date DATETIME DEFAULT (CURRENT_TIMESTAMP),
-            FOREIGN KEY (id_customer) REFERENCES customer(id_customer)
+            id_status INTEGER DEFAULT (1),
+            CONSTRAINT fk_orders_customer FOREIGN KEY (id_customer) REFERENCES customer(id_customer),
+            CONSTRAINT fk_orders_status FOREIGN KEY (id_status) REFERENCES order_status(id_status)
         );
     ''')
 
@@ -144,8 +156,23 @@ def create_itens_pedidos():
             id_product INTEGER,
             quantity DECIMAL(10,2) NOT NULL,
             price DECIMAL(10,2) NOT NULL CHECK(price >= 0.00),
-            FOREIGN KEY (id_order) REFERENCES orders(id_order),
-            FOREIGN KEY (id_product) REFERENCES product(id_product)
+            CONSTRAINT fk_orderitems_order FOREIGN KEY (id_order) REFERENCES orders(id_order),
+            CONSTRAINT fk_orderitems_product FOREIGN KEY (id_product) REFERENCES product(id_product)
+        );
+    ''')
+
+# Tabela de log para registrar as alterações nos preços dos itens
+# Aqui ficam o id do produto, o valor antigo e o novo valor atualizado dele, para futuras consultas
+def create_log_products():
+    cursor.execute('''
+        CREATE TABLE log_product (
+            id_log INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_product INTEGER,
+            old_product_price DECIMAL(10,2),
+            new_product_price DECIMAL(10,2),
+            command CHAR(1),
+            last_updated DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            CONSTRAINT fk_logproduct_product FOREIGN KEY (id_product) REFERENCES product(id_product)
         );
     ''')
 
@@ -164,7 +191,19 @@ def insert_categorias():
         ''', (categoria,))
     
     grava_no_banco()
-    print('Dados inserindos na tabela "category" com sucesso!\n')
+    print('Dados inseridos na tabela "category" com sucesso!\n')
+
+# Percorre a lista de status, e inseri na tabela order_status do banco
+def insert_status():
+    print('-- Inserindo dados na tabela "order_status"...')
+    sleep(1)
+    for stat in status:
+        cursor.execute('''
+            INSERT INTO order_status (status) VALUES (?)
+        ''', (stat,))
+
+    grava_no_banco()
+    print('Dados inseridos na tabela "order_status" com sucesso!\n')
 
 # Percorre a lista 'produtos' e insere cada um no banco
 # Cada item da lista é uma tupla: (nome, preco, estoque, id_categoria)
@@ -183,7 +222,7 @@ def insert_produtos():
         ''', (nome_produto, preco, estoque, id_categoria))
 
     grava_no_banco()
-    print('Dados inserindos na tabela "product" com sucesso!\n')
+    print('Dados inseridos na tabela "product" com sucesso!\n')
 
 # Atenção: na lista de fornecedores, o índice [1] é o telefone e o [2] é o e-mail
 # (a ordem na lista não é a mesma que na tabela, por isso preciso mapear manualmente)
@@ -201,7 +240,7 @@ def insert_fornecedores():
         ''', (nome_fornecedor, email_fornecedor, telefone_fornecedor))
 
     grava_no_banco()
-    print('Dados inserindos na tabela "supplier" com sucesso!\n')
+    print('Dados inseridos na tabela "supplier" com sucesso!\n')
 
 # Insere os relacionamentos entre produto e fornecedor
 # Cada item da tabela_aux: (id_produto, id_fornecedor, custo, data_ultima_compra)
@@ -220,7 +259,7 @@ def insert_tabela_auxiliar():
         ''', (id_produto, id_fornecedor, custo, ultimo_pedido))
 
     grava_no_banco()
-    print('Dados inserindos na tabela "product_supplier" com sucesso!\n')
+    print('Dados inseridos na tabela "product_supplier" com sucesso!\n')
 
 # Cada cliente é uma tupla: (nome, email, telefone, genero)
 def insert_clientes():
@@ -238,7 +277,7 @@ def insert_clientes():
         ''', (nome_cliente, email_cliente, telefone_cliente, genero))
 
     grava_no_banco()
-    print('Dados inserindos na tabela "customer" com sucesso!\n')
+    print('Dados inseridos na tabela "customer" com sucesso!\n')
 
 # Cada endereço é uma tupla: (id_cliente, rua, numero, bairro, cidade, estado)
 def insert_enderecos():
@@ -258,7 +297,7 @@ def insert_enderecos():
         ''', (id_cliente, rua, nro, bairro, cidade, estado))
 
     grava_no_banco()
-    print('Dados inserindos na tabela "address" com sucesso!\n')
+    print('Dados inseridos na tabela "address" com sucesso!\n')
 
 # Essa função é a mais complexa do projeto — ela gera um histórico de vendas realista
 # cobrindo o período de 01/01/2025 até 31/03/2026, com sazonalidade por mês
@@ -313,10 +352,26 @@ def popular_vendas():
                 minuto = random.randint(0, 59)
                 data_com_hora = data_atual.replace(hour=hora, minute=minuto)
                 data_str = data_com_hora.strftime('%Y-%m-%d %H:%M:%S')
+                id_status = 0
+
+                # Lógica para status realista
+                # 1 = Pending, 2 = Canceled, 3 = Processing, 4 = In Transit, 5 = Delivered
+                if data_atual.year == 2026 and data_atual.month == 3:
+                    # Para pedidos de Março/2026 (Mês atual/vivo da operação)
+                    # Ex: 10% Pendente, 10% Cancelado, 15% Processando, 25% Em Trânsito e 40% Entregue
+                    opcoes_status = [1, 2, 3, 4, 5]
+                    pesos = [0.075, 0.075, 0.15, 0.30, 0.40]
+                    id_status = random.choices(opcoes_status, weights=pesos)[0]
+                else:
+                    # Para pedidos de fevereiro de 2026 para trás, o histórico já está fechado
+                    # Ex: 95% dos pedidos foram entregues e 5 foram cancelados
+                    opcoes_status = [2, 5]
+                    pesos = [0.05, 0.95]
+                    id_status = random.choices(opcoes_status, weights=pesos)[0]
 
                 # Insiro o pedido e pego o id gerado pra usar nos itens
-                cursor.execute("INSERT INTO orders (id_customer, order_date) VALUES (?, ?)", 
-                               (cliente_id, data_str))
+                cursor.execute("INSERT INTO orders (id_customer, order_date, id_status) VALUES (?, ?, ?)", 
+                               (cliente_id, data_str, id_status))
                 order_id = cursor.lastrowid
 
                 # Cada pedido tem entre 1 e 5 produtos diferentes (sem repetir no mesmo pedido)
@@ -336,6 +391,91 @@ def popular_vendas():
 
     grava_no_banco()
     print("Histórico populado com sucesso respeitando a sazonalidade!")
+
+# ----------------------------------------------------
+# Funcoes para criar os triggers
+# ----------------------------------------------------
+def create_triggers():
+    print('-- Criando os Triggers (Automações) do banco...')
+    sleep(1)
+    
+    cursor.executescript('''
+        -- Trigger para registar na tabela de log, alterações de preços
+        CREATE TRIGGER trg_log_product
+        AFTER UPDATE OF product_price ON product
+        FOR EACH ROW
+        BEGIN
+            INSERT INTO log_product(id_product, old_product_price, new_product_price, command) VALUES
+            (OLD.id_product, OLD.product_price, NEW.product_price, 'U');
+        END;
+
+        -- Trigger subtrair o estoque do item ao ser vendido
+        CREATE TRIGGER trg_stock_control_rem
+        AFTER INSERT ON order_items
+        FOR EACH ROW
+        BEGIN
+            UPDATE product
+            SET product_stock = product_stock - NEW.quantity 
+            WHERE id_product = NEW.id_product;
+        END;
+        
+        -- Trigger estornar o estoque do item se a comprar for cancelada
+        CREATE TRIGGER trg_control_add
+        AFTER DELETE ON order_items
+        FOR EACH ROW
+        BEGIN
+            UPDATE product
+            SET product_stock = product_stock + OLD.quantity
+            WHERE id_product = OLD.id_product;
+        END;
+                         
+        -- Trigger padronizar os emails para caixa baixa
+        CREATE TRIGGER trg_lower_email
+        AFTER INSERT ON customer
+        FOR EACH ROW
+        BEGIN
+            UPDATE customer
+            SET customer_email = LOWER(TRIM(NEW.customer_email))
+            WHERE id_customer = NEW.id_customer;
+        END;        
+
+        -- Trigger para impedir exclusão, altera o status para canceled(cancelado)
+        CREATE TRIGGER trg_order_delete
+        BEFORE DELETE ON orders
+        FOR EACH ROW
+        BEGIN
+            UPDATE orders
+            SET id_status = 2
+            WHERE id_order = OLD.id_order;
+            SELECT RAISE(IGNORE);
+        END;                                  
+
+        -- Trigger para estornar a quantidade de um produto, quanto o pedido todo for excluido      
+        CREATE TRIGGER trg_restore_stock_on_cancel
+        AFTER UPDATE OF id_status ON orders
+        FOR EACH ROW
+        WHEN NEW.id_status = 2 AND OLD.id_status != 2
+        BEGIN
+            UPDATE product
+            SET product_stock = product_stock + (
+                SELECT quantity
+                FROM order_items
+                WHERE order_items.id_order = NEW.id_order
+                AND order_items.id_product = product.id_product 
+            )
+            WHERE id_product IN (
+                SELECT id_product
+                FROM order_items
+                WHERE id_order = NEW.id_order
+            );
+        END;    
+                                      
+    ''')
+    
+    grava_no_banco()
+    print('Triggers criados com sucesso!\n')
+
+
 
 ######################################################
 # Listas com os dados a serem inseridos no banco
@@ -514,6 +654,15 @@ fornecedores = [
     ('Moinho de Grãos Especiais', '16977770011', 'contato@moinhograos.com'),
     ('Doces Regionais MG', '35966661100', 'vendas@docesmg.com.br'),
     ('Logística de Alimentos Gourmet', '11955558899', 'comercial@alimentosgourmet.com')
+]
+
+# 5 status
+status = [
+    'Pending',
+    'Canceled',
+    'Processing',
+    'In Transit',
+    'Delivered'
 ]
 
 # Tabela auxiliar produto <-> fornecedor
@@ -846,6 +995,8 @@ create_fornecedores()
 create_tabela_auxiliar()
 create_clientes()
 create_enderecos()
+create_status()
+create_log_products()
 create_pedidos()
 create_itens_pedidos()
 
@@ -863,9 +1014,14 @@ insert_fornecedores()
 insert_tabela_auxiliar()
 insert_clientes()
 insert_enderecos()
+insert_status()
 popular_vendas()  # Essa é a mais demorada — gera mais de um ano de histórico de vendas!
 
 print('/* DADOS INSERIDOS COM SUCESSO! */\n')
+
+create_triggers()
+
+print('/* TRIGGERS CRIADOS COM SUCESSO! */\n')
 
 # Fechando a conexão com o banco — boa prática sempre fazer isso no final!
 conn.close()
