@@ -14,7 +14,8 @@ WITH sold_by_month AS (
         STRFTIME('%m', o.order_date) AS month_number,
         ROUND(SUM(oi.quantity * oi.price), 0) AS total_sold
     FROM order_items oi
-    JOIN orders o ON oi.id_order = o.id_order 
+    JOIN orders o ON oi.id_order = o.id_order
+    WHERE o.id_status = 5
     GROUP BY year_number, month_number
 )
 SELECT
@@ -217,7 +218,7 @@ SELECT
 	ROUND((qo.qtd * 100.0 / SUM(qo.qtd) OVER()),2) AS 'percentage(%)'
 FROM qtd_orders qo
 JOIN order_status s ON qo.id_status = s.id_status
-ORDER BY qo.qtd DESC
+ORDER BY qo.qtd DESC;
 
 /* 12. EVOLUÇÃO DA TAXA DE CANCELAMENTO (CANCEL RATE)
    PROBLEMA: Necessidade de monitorar se a perda de vendas por cancelamento está aumentando ou diminuindo ao longo dos meses.
@@ -240,4 +241,4 @@ SELECT
 	qtd_canceled,
 	ROUND((qtd_canceled * 100.0 / total_orders), 2) as 'cancel_rate(%)'
 FROM cancel_by_month
-ORDER BY year_number, month_number
+ORDER BY year_number, month_number;
