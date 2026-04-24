@@ -43,13 +43,15 @@ Logs de Auditoria: Rastreamento invisível de alterações de preços dos produt
 📊 Desafios de SQL Inclusos
 O repositório conta com um arquivo queries_analytics.sql contendo 10 problemas de negócio resolvidos, prontos para serem usados como guia de estudo:
 
-Rentabilidade: Cálculo de margem unitária por produto.
+📊 Desafios de SQL Inclusos
+O repositório conta com um arquivo `queries_analytics.sql` contendo 12 problemas de negócio resolvidos, prontos para serem usados como guia de estudo:
 
-Fidelidade: Identificação de clientes recorrentes (Retention).
-
-Cross-Sell: Análise de eficiência de carrinho (pedidos de item único).
-
-Operação: Identificação de horários de pico (Morning, Afternoon, Evening).
+- **Rentabilidade:** Cálculo de margem unitária por produto.
+- **Fidelidade:** Identificação de clientes recorrentes (Retention).
+- **Cross-Sell:** Análise de eficiência de carrinho (pedidos de item único).
+- **Operação:** Identificação de horários de pico (Morning, Afternoon, Evening).
+- **Logística:** Monitoramento do funil de vendas e distribuição de status (Window Functions).
+- **Cancelamentos:** Evolução mensal da taxa de perda / Cancel Rate (Agregação Condicional).
 
 ⚙️ Automações e Arquitetura Avançada (Triggers)
 Para simular um ambiente de produção blindado contra falhas humanas, o banco conta com 6 automações (Triggers) integradas nativamente via script:

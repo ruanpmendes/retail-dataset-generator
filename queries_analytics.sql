@@ -12,7 +12,7 @@ WITH sold_by_month AS (
     SELECT
     	STRFTIME('%Y', o.order_date) AS year_number,
         STRFTIME('%m', o.order_date) AS month_number,
-        SUM(oi.quantity * oi.price) AS total_sold
+        ROUND(SUM(oi.quantity * oi.price), 0) AS total_sold
     FROM order_items oi
     JOIN orders o ON oi.id_order = o.id_order 
     GROUP BY year_number, month_number
@@ -48,6 +48,7 @@ SELECT
 FROM order_items oi
 JOIN orders o ON oi.id_order = o.id_order
 JOIN customer c ON o.id_customer = c.id_customer
+WHERE o.id_status = 5
 GROUP BY c.id_customer
 ORDER BY total_gasto DESC
 LIMIT 10;
@@ -78,17 +79,19 @@ WITH category_metrics AS (
     SELECT
         c.category_name as category,
         COUNT(DISTINCT oi.id_order) as total_orders,
-        SUM(oi.quantity * oi.price) as total_revenue
+        ROUND(SUM(oi.quantity * oi.price), 2) as total_revenue
     FROM order_items oi
     JOIN product p ON oi.id_product = p.id_product 
     JOIN category c ON p.id_category = c.id_category
+    JOIN orders o ON oi.id_order  = o.id_order
+    WHERE o.id_status = 5
     GROUP BY c.category_name
 )
 SELECT
     category,
     total_orders,
     total_revenue,
-    (total_revenue * 1.0 / total_orders) as average_ticket
+    ROUND((total_revenue * 1.0 / total_orders), 2) as average_ticket
 FROM category_metrics
 ORDER BY average_ticket DESC;
 
@@ -103,7 +106,9 @@ WITH product_costs AS (
         AVG(ps.cost_price) as average_cost,
         AVG(oi.price) as average_price
     FROM order_items oi 
-    JOIN product_supplier ps ON oi.id_product = ps.id_product 
+    JOIN product_supplier ps ON oi.id_product = ps.id_product
+    JOIN orders o ON oi.id_order = o.id_order
+    WHERE o.id_status  = 5
     GROUP BY oi.id_product 
 )
 SELECT
@@ -124,11 +129,13 @@ LIMIT 10;
 SELECT 
     COUNT(*) AS total_orders_general,
     SUM(CASE WHEN items_count = 1 THEN 1 ELSE 0 END) AS single_item_orders,
-    (SUM(CASE WHEN items_count = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS single_item_percentage
+    ROUND((SUM(CASE WHEN items_count = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*)), 2) AS single_item_percentage
 FROM (
-    SELECT id_order, COUNT(*) AS items_count 
-    FROM order_items 
-    GROUP BY id_order
+    SELECT oi.id_order, COUNT(*) AS items_count 
+    FROM order_items oi
+    JOIN orders o ON oi.id_order = o.id_order 
+    WHERE o.id_status  = 5
+    GROUP BY oi.id_order
 );
 
 
@@ -156,7 +163,7 @@ SELECT
     c.customer_email 
 FROM orders o
 JOIN customer c ON o.id_customer = c.id_customer 
-WHERE STRFTIME('%Y', o.order_date) = '2025'
+WHERE STRFTIME('%Y', o.order_date) = '2025' AND o.id_status = 5
 GROUP BY c.id_customer
 HAVING COUNT(DISTINCT STRFTIME('%m', o.order_date)) = 12
 ORDER BY c.customer_name;
@@ -187,5 +194,50 @@ SELECT
     END AS day_period,
     COUNT(*) as orders_volume
 FROM orders o
+WHERE o.id_status = 5
 GROUP BY day_period
 ORDER BY day_period;
+
+/* 11. MONITORAMENTO DE FUNIL LOGÍSTICO (SAÚDE DA OPERAÇÃO)
+   PROBLEMA: Perda de visibilidade sobre gargalos na separação, atrasos de envio ou altas taxas de cancelamento no mês vigente.
+   OBJETIVO: Calcular o volume e a representatividade percentual de cada status de pedido dentro do total de vendas do período.
+*/
+WITH qtd_orders AS (
+    SELECT
+        id_status,
+        COUNT(*) as qtd
+    FROM orders
+    WHERE order_date >= '2026-03-01' AND order_date < '2026-04-01'
+    GROUP BY id_status
+)
+
+SELECT
+	s.status,
+	qo.qtd as quantity,
+	ROUND((qo.qtd * 100.0 / SUM(qo.qtd) OVER()),2) AS 'percentage(%)'
+FROM qtd_orders qo
+JOIN order_status s ON qo.id_status = s.id_status
+ORDER BY qo.qtd DESC
+
+/* 12. EVOLUÇÃO DA TAXA DE CANCELAMENTO (CANCEL RATE)
+   PROBLEMA: Necessidade de monitorar se a perda de vendas por cancelamento está aumentando ou diminuindo ao longo dos meses.
+   OBJETIVO: Calcular o volume total de pedidos, a quantidade de cancelamentos e a taxa percentual de perda (Cancel Rate) com agrupamento mensal.
+*/
+WITH cancel_by_month AS (
+	SELECT
+		STRFTIME('%Y', order_date) as year_number,
+		STRFTIME('%m', order_date) as month_number,
+		COUNT(*) as total_orders,
+		SUM(CASE WHEN id_status = 2 THEN 1 ELSE 0 END) as qtd_canceled		
+	FROM orders
+	GROUP BY year_number, month_number
+)
+
+SELECT
+	year_number,
+	month_number,
+	total_orders,
+	qtd_canceled,
+	ROUND((qtd_canceled * 100.0 / total_orders), 2) as 'cancel_rate(%)'
+FROM cancel_by_month
+ORDER BY year_number, month_number
