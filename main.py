@@ -1,6 +1,8 @@
-import sqlite3, random, os
+import sqlite3, random, os, unicodedata
 from datetime import datetime, timedelta
 from time import sleep
+from faker import Faker
+
 
 # Aqui descobrimos onde esse script está salvo no computador,
 # assim o banco de dados sempre vai ser criado na mesma pasta do arquivo .py
@@ -99,7 +101,7 @@ def create_clientes():
         CREATE TABLE customer (
             id_customer INTEGER PRIMARY KEY AUTOINCREMENT,
             customer_name VARCHAR(100) NOT NULL,
-            customer_email VARCHAR(100) UNIQUE,
+            customer_email VARCHAR(100),
             customer_phone VARCHAR(15),
             gender CHAR(1) NOT NULL CHECK(gender IN ('M', 'F', 'O'))
         );
@@ -175,6 +177,79 @@ def create_log_products():
             CONSTRAINT fk_logproduct_product FOREIGN KEY (id_product) REFERENCES product(id_product)
         );
     ''')
+
+# ----------------------------------------------------
+# Funcoes para gerar 5K de cliente fictícios
+# e seus devidos enredeços ficitícios
+# ----------------------------------------------------
+fake = Faker('pt_BR')
+
+def remover_acentos(texto):
+    return ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
+
+def gerar_clientes_ficticios(quantidade):
+    clientes_gerados = []
+    
+    # Pesos para distribuição de gênero
+    opcoes_genero = ['M', 'F', 'O']
+    pesos = [48, 48, 4] 
+    
+    for _ in range(quantidade):
+        genero = random.choices(opcoes_genero, weights=pesos)[0]
+        
+        # Gerar nome compatível com o gênero
+        if genero == 'M':
+            nome = fake.name_male()
+        elif genero == 'F':
+            nome = fake.name_female()
+        else:
+            nome = fake.name_nonbinary()
+            
+        # Limpar o nome para o e-mail (sem acentos e em minúsculo)
+        nome_limpo = remover_acentos(nome).lower().split()
+        dominio = fake.free_email_domain()
+        
+        # Criação do email: primeiro_nome.ultimo_nome@dominio
+        email = f"{nome_limpo[0]}.{nome_limpo[-1]}@{dominio}"
+        
+        # Gerar telefone (DDD 16 + 9 + 8 dígitos aleatórios)
+        numero = fake.random_number(digits=8, fix_len=True)
+        telefone = f"169{numero}"
+        
+        clientes_gerados.append((nome, email, telefone, genero))
+        
+    return clientes_gerados
+
+def gerar_enderecos(quantidade):
+    enderecos_gerados = []
+    
+    # Cidades para concentrar a maior parte da massa de dados
+    cidades_paulistas = ['Ribeirão Preto', 'Sertãozinho', 'Cravinhos', 'Franca', 'Jardinópolis', 'Brodowski', 'Batatais', 'São Paulo']
+    
+    for id_cliente in range(1, quantidade + 1):
+        # 95 de chance de cair no estado de SP para manter a consistência do seu modelo
+        if random.random() < 0.95:
+            cidade = random.choices(
+                cidades_paulistas, 
+                weights=[69, 6, 7, 3, 4, 8, 2, 1] # Maior peso para RP
+            )[0]
+            estado = 'SP'
+            bairro = fake.bairro()
+        else:
+            # 5% de chance de gerar cidades de outros estados do Brasil
+            cidade = fake.city()
+            estado = fake.estado_sigla()
+            bairro = fake.bairro()
+            
+        # Gera o restante do endereço
+        # Algumas vezes o Faker coloca "Rua", "Avenida" no street_name
+        logradouro = fake.street_name() 
+        numero = fake.building_number()
+        
+        # Adiciona a tupla na lista
+        enderecos_gerados.append((id_cliente, logradouro, numero, bairro, cidade, estado))
+        
+    return enderecos_gerados
 
 # ----------------------------------------------------
 # Funcoes para inserir dados nas tabelas do banco
@@ -771,215 +846,12 @@ tabela_aux = [
     (100, 39, 170.00, '2026-01-25'),(100, 50, 165.00, None)
 ]
 
-# 100 clientes: cada tupla é (nome, email, telefone, genero)
-# Gênero: 'M' = masculino, 'F' = feminino, 'O' = outro
-clientes = [
-    ('Ricardo Silva', 'ricardo.silva@email.com', '16991112233', 'M'),
-    ('Ana Paula Oliveira', 'ana.oliveira@gmail.com', '16992223344', 'F'),
-    ('Marcos Paulo Mendes', 'marcos.mendes@outlook.com', '16993334455', 'M'),
-    ('Juliana Ferreira', 'ju.ferreira@uol.com.br', '11994445566', 'F'),
-    ('Roberto Carlos Santos', 'rc.santos@bol.com.br', '16995556677', 'M'),
-    ('Fernanda Costa', 'fer.costa@hotmail.com', '16996667788', 'F'),
-    ('Carlos Eduardo Lima', 'cadu.lima@yahoo.com', '11997778899', 'M'),
-    ('Beatriz Souza', 'bia.souza@email.com', '16998889900', 'F'),
-    ('Lucas Gabriel Rocha', 'lucas.rocha@gmail.com', '16999990011', 'M'),
-    ('Camila Rodrigues', 'camila.rod@outlook.com', '16991110022', 'F'),
-    ('Alexandre Pires', 'alex.pires@uol.com.br', '11992220033', 'M'),
-    ('Amanda Martins', 'amanda.m@gmail.com', '16993330044', 'F'),
-    ('Bruno Henrique Vaz', 'bruno.vaz@hotmail.com', '16994440055', 'M'),
-    ('Daniela Albuquerque', 'dani.albu@yahoo.com', '16995550066', 'F'),
-    ('Eduardo Spohr', 'edu.spohr@email.com', '11996660077', 'M'),
-    ('Fabiana Karla', 'fabi.karla@gmail.com', '16997770088', 'F'),
-    ('Gabriel Pensador', 'gabriel.p@outlook.com', '16998880099', 'M'),
-    ('Heloísa Perissé', 'helo.per@uol.com.br', '16999991100', 'F'),
-    ('Ítalo Ferreira', 'italo.f@gmail.com', '11991111122', 'M'),
-    ('Jéssica Ellen', 'jessica.e@hotmail.com', '16992222233', 'F'),
-    ('Kleber Gladiador', 'kleber.g@yahoo.com', '16993333344', 'M'),
-    ('Larissa Manoela', 'lari.m@email.com', '16994444455', 'F'),
-    ('Murilo Benício', 'murilo.b@gmail.com', '11995555566', 'M'),
-    ('Natália Guimarães', 'nat.guimaraes@outlook.com', '16996665577', 'F'),
-    ('Otávio Mesquita', 'otavio.m@uol.com.br', '16997775588', 'M'),
-    ('Patrícia Poeta', 'patricia.p@gmail.com', '16998885599', 'F'),
-    ('Quiteria Chagas', 'quiteria.c@hotmail.com', '11999996600', 'F'),
-    ('Rafael Portugal', 'rafa.portugal@yahoo.com', '16991116611', 'M'),
-    ('Sabrina Sato', 'sabrina.sato@email.com', '16992226622', 'F'),
-    ('Tiago Leifert', 'tiago.l@gmail.com', '16993336633', 'M'),
-    ('Ursula Corbero', 'ursula.c@outlook.com', '11994446644', 'F'),
-    ('Vitor Kley', 'vitor.kley@uol.com.br', '16995556655', 'M'),
-    ('Wanessa Camargo', 'wanessa.c@gmail.com', '16996666677', 'F'),
-    ('Xande de Pilares', 'xande.p@hotmail.com', '16997776688', 'M'),
-    ('Yasmin Brunet', 'yasmin.b@yahoo.com', '11998886699', 'F'),
-    ('Zeca Pagodinho', 'zeca.p@email.com', '16999997700', 'M'),
-    ('Adriana Esteves', 'adriana.e@gmail.com', '16991117711', 'F'),
-    ('Bento Ribeiro', 'bento.r@outlook.com', '16992227722', 'M'),
-    ('Cris Vianna', 'cris.v@uol.com.br', '11993337733', 'F'),
-    ('Danton Mello', 'danton.m@gmail.com', '16994447744', 'M'),
-    ('Eliana Michaelichen', 'eliana.m@hotmail.com', '16995557755', 'F'),
-    ('Felipe Titto', 'felipe.t@yahoo.com', '16996667766', 'M'),
-    ('Giovanna Antonelli', 'gio.anto@email.com', '11997777788', 'F'),
-    ('Hugo Gloss', 'hugo.g@gmail.com', '16998887799', 'O'),
-    ('Isis Valverde', 'isis.v@outlook.com', '16999998800', 'F'),
-    ('João Vicente', 'joao.v@uol.com.br', '16991118811', 'M'),
-    ('Karol Conka', 'karol.c@gmail.com', '11992228822', 'F'),
-    ('Lázaro Ramos', 'lazaro.r@hotmail.com', '16993338833', 'M'),
-    ('Maju Coutinho', 'maju.c@yahoo.com', '16994448844', 'F'),
-    ('Neymar Junior', 'ney.j@email.com', '13995558855', 'M'),
-    ('Fábio Assunção', 'fabio.assun@email.com', '16991119900', 'M'),
-    ('Grazi Massafera', 'grazi.m@gmail.com', '16992228811', 'F'),
-    ('Lázaro Ramos', 'lazaro.ramos@outlook.com', '11993337722', 'M'),
-    ('Taís Araújo', 'tais.araujo@uol.com.br', '11994446633', 'F'),
-    ('Selton Mello', 'selton.mello@bol.com.br', '16995555544', 'M'),
-    ('Paolla Oliveira', 'paolla.o@hotmail.com', '16996664455', 'F'),
-    ('Rodrigo Lombardi', 'rodrigo.lomb@yahoo.com', '11997773366', 'M'),
-    ('Alinne Moraes', 'alinne.moraes@email.com', '16998882277', 'F'),
-    ('Mateus Solano', 'mateus.s@gmail.com', '16999991188', 'M'),
-    ('Débora Falabella', 'debora.f@outlook.com', '16991110099', 'F'),
-    ('Vladimir Brichta', 'vlad.b@uol.com.br', '11992229911', 'M'),
-    ('Adriana Esteves', 'adri.esteves@gmail.com', '16993338822', 'F'),
-    ('Murilo Benício', 'murilo.ben@hotmail.com', '16994447733', 'M'),
-    ('Cauã Reymond', 'caua.r@yahoo.com', '16995556644', 'M'),
-    ('Ísis Valverde', 'isis.valv@email.com', '11996665555', 'F'),
-    ('Bruno Gagliasso', 'bruno.g@gmail.com', '16997774466', 'M'),
-    ('Marina Ruy Barbosa', 'marina.rb@outlook.com', '16998883377', 'F'),
-    ('Chay Suede', 'chay.s@uol.com.br', '16999992288', 'M'),
-    ('Alice Wegmann', 'alice.w@gmail.com', '11991111199', 'F'),
-    ('Emílio Dantas', 'emilio.d@hotmail.com', '16992220011', 'M'),
-    ('Sophie Charlotte', 'sophie.c@yahoo.com', '16993339922', 'F'),
-    ('Daniel de Oliveira', 'daniel.o@email.com', '16994448833', 'M'),
-    ('Letícia Colin', 'leticia.c@gmail.com', '11995557744', 'F'),
-    ('Renato Góes', 'renato.g@outlook.com', '16996666655', 'M'),
-    ('Thaila Ayala', 'thaila.a@uol.com.br', '16997775566', 'F'),
-    ('Ícaro Silva', 'icaro.s@gmail.com', '16998884477', 'M'),
-    ('Luísa Arraes', 'luisa.a@hotmail.com', '11999993388', 'F'),
-    ('Caio Blat', 'caio.b@yahoo.com', '16991112299', 'M'),
-    ('Maria Ribeiro', 'maria.r@email.com', '16992221100', 'F'),
-    ('Eduardo Moscovis', 'edu.mosc@gmail.com', '16993330011', 'M'),
-    ('Carolina Dieckmann', 'carol.d@outlook.com', '11994449922', 'F'),
-    ('Reynaldo Gianecchini', 'reynaldo.g@uol.com.br', '16995558833', 'M'),
-    ('Giovanna Ewbank', 'gio.ew@gmail.com', '16996667744', 'F'),
-    ('Felipe Simas', 'felipe.s@hotmail.com', '16997776655', 'M'),
-    ('Agatha Moreira', 'agatha.m@yahoo.com', '11998885566', 'F'),
-    ('Rodrigo Simas', 'rodrigo.s@email.com', '16999994477', 'M'),
-    ('Dira Paes', 'dira.paes@gmail.com', '16991113388', 'F'),
-    ('Marcos Palmeira', 'marcos.p@outlook.com', '16992222299', 'M'),
-    ('Juliette Freire', 'juliette.f@uol.com.br', '83993331100', 'F'),
-    ('Gil do Vigor', 'gil.vigor@gmail.com', '11994440011', 'M'),
-    ('Camilla de Lucas', 'camilla.l@hotmail.com', '21995559922', 'F'),
-    ('João Luiz Pedrosa', 'joao.l@yahoo.com', '16996668833', 'M'),
-    ('Viih Tube', 'viih.tube@email.com', '15997777744', 'F'),
-    ('Eliezer Netto', 'eliezer.n@gmail.com', '24998886655', 'M'),
-    ('Jade Picon', 'jade.p@outlook.com', '11999995566', 'F'),
-    ('Paulo André', 'paulo.a@uol.com.br', '27991114477', 'M'),
-    ('Douglas Silva', 'douglas.s@gmail.com', '21992223388', 'M'),
-    ('Arthur Aguiar', 'arthur.a@hotmail.com', '11993332299', 'M'),
-    ('Liniker de Barros', 'liniker.b@yahoo.com', '16994441100', 'O'),
-    ('Pabllo Vittar', 'pabllo.v@email.com', '11995550011', 'O')
-]
+# 5.000 clientes gerados através da função feita acima
+clientes = gerar_clientes_ficticios(5000)
 
-# 100 endereços: cada tupla é (id_cliente, rua, numero, bairro, cidade, estado)
+# 5.000 endereços: 1 endereço gerado para cada cliente
 # Maioria em Ribeirão Preto e cidades da região, alguns em São Paulo
-enderecos = [
-    (1, 'Rua General Osório', '450', 'Centro', 'Ribeirão Preto', 'SP'),
-    (2, 'Avenida João Fiúsa', '1200', 'Jardim Olhos d Água', 'Ribeirão Preto', 'SP'),
-    (3, 'Rua Tibiriçá', '88', 'Centro', 'Ribeirão Preto', 'SP'),
-    (4, 'Avenida Paulista', '1500', 'Bela Vista', 'São Paulo', 'SP'),
-    (5, 'Rua Capitão Adelmário Facca', '32', 'Vila Virgínia', 'Ribeirão Preto', 'SP'),
-    (6, 'Rua Professor João Salles Puppo', '155', 'City Ribeirão', 'Ribeirão Preto', 'SP'),
-    (7, 'Rua Oscar Freire', '200', 'Jardins', 'São Paulo', 'SP'),
-    (8, 'Avenida Presidente Vargas', '2100', 'Jardim Sumaré', 'Ribeirão Preto', 'SP'),
-    (9, 'Rua Florêncio de Abreu', '670', 'Centro', 'Ribeirão Preto', 'SP'),
-    (10, 'Rua Altino Arantes', '1020', 'Boulevard', 'Ribeirão Preto', 'SP'),
-    (11, 'Rua Augusta', '900', 'Consolação', 'São Paulo', 'SP'),
-    (12, 'Rua Chile', '45', 'Iraja', 'Ribeirão Preto', 'SP'),
-    (13, 'Avenida Independência', '3800', 'Jardim Independência', 'Ribeirão Preto', 'SP'),
-    (14, 'Rua Quintino Bocaiúva', '120', 'Vila Seixas', 'Ribeirão Preto', 'SP'),
-    (15, 'Alameda Santos', '400', 'Cerqueira César', 'São Paulo', 'SP'),
-    (16, 'Rua Mariana Junqueira', '330', 'Centro', 'Ribeirão Preto', 'SP'),
-    (17, 'Avenida Braz Olaia Acosta', '720', 'Jardim Califórnia', 'Ribeirão Preto', 'SP'),
-    (18, 'Rua Alice Além Saadi', '250', 'Nova Ribeirânia', 'Ribeirão Preto', 'SP'),
-    (19, 'Avenida Faria Lima', '3500', 'Itaim Bibi', 'São Paulo', 'SP'),
-    (20, 'Rua Inácio Luiz Pinto', '440', 'Alto da Boa Vista', 'Ribeirão Preto', 'SP'),
-    (21, 'Rua Silveira Martins', '1100', 'Campos Elíseos', 'Ribeirão Preto', 'SP'),
-    (22, 'Rua Lafaiete', '890', 'Centro', 'Ribeirão Preto', 'SP'),
-    (23, 'Rua Haddock Lobo', '100', 'Cerqueira César', 'São Paulo', 'SP'),
-    (24, 'Avenida Caramuru', '2500', 'República', 'Ribeirão Preto', 'SP'),
-    (25, 'Rua Visconde de Inhaúma', '580', 'Centro', 'Ribeirão Preto', 'SP'),
-    (26, 'Rua Marechal Deodoro', '140', 'Vila Seixas', 'Ribeirão Preto', 'SP'),
-    (27, 'Avenida Rebouças', '2200', 'Pinheiros', 'São Paulo', 'SP'),
-    (28, 'Rua São José', '1600', 'Boulevard', 'Ribeirão Preto', 'SP'),
-    (29, 'Rua Garibaldi', '1300', 'Centro', 'Ribeirão Preto', 'SP'),
-    (30, 'Rua Bernardino de Campos', '920', 'Centro', 'Ribeirão Preto', 'SP'),
-    (31, 'Avenida 9 de Julho', '1100', 'Jardim Sumaré', 'Ribeirão Preto', 'SP'),
-    (32, 'Rua Otto Benz', '550', 'Nova Ribeirânia', 'Ribeirão Preto', 'SP'),
-    (33, 'Rua Sete de Setembro', '400', 'Centro', 'Ribeirão Preto', 'SP'),
-    (34, 'Rua Amador Bueno', '220', 'Centro', 'Ribeirão Preto', 'SP'),
-    (35, 'Avenida Ipiranga', '200', 'República', 'São Paulo', 'SP'),
-    (36, 'Rua Couto Magalhães', '150', 'Alto da Boa Vista', 'Ribeirão Preto', 'SP'),
-    (37, 'Avenida Costabile Romano', '2200', 'Ribeirânia', 'Ribeirão Preto', 'SP'),
-    (38, 'Rua Nélio Guimarães', '350', 'Alto da Boa Vista', 'Ribeirão Preto', 'SP'),
-    (39, 'Rua Buri', '12', 'Jardim Paulistano', 'Ribeirão Preto', 'SP'),
-    (40, 'Avenida Maurílio Biagi', '1800', 'Santa Cruz', 'Ribeirão Preto', 'SP'),
-    (41, 'Rua Itacolomi', '450', 'Alto da Boa Vista', 'Ribeirão Preto', 'SP'),
-    (42, 'Rua Arnaldo Victaliano', '600', 'Jardim Palma Travassos', 'Ribeirão Preto', 'SP'),
-    (43, 'Rua João Penteado', '1100', 'Jardim Sumaré', 'Ribeirão Preto', 'SP'),
-    (44, 'Avenida Portugal', '950', 'Santa Cruz', 'Ribeirão Preto', 'SP'),
-    (45, 'Rua Eliseu Guilherme', '300', 'Jardim Sumaré', 'Ribeirão Preto', 'SP'),
-    (46, 'Avenida Luiz Maggioni', '45', 'Distrito Industrial', 'Ribeirão Preto', 'SP'),
-    (47, 'Rua Guiana Inglesa', '220', 'Jardim Independência', 'Ribeirão Preto', 'SP'),
-    (48, 'Rua Javari', '1500', 'Ipiranga', 'Ribeirão Preto', 'SP'),
-    (49, 'Avenida do Café', '800', 'Vila Tibério', 'Ribeirão Preto', 'SP'),
-    (50, 'Avenida Professor João Fiúsa', '2500', 'Jardim Olhos d Água', 'Ribeirão Preto', 'SP'),
-    (51, 'Rua Barão do Rio Branco', '120', 'Centro', 'Sertãozinho', 'SP'),
-    (52, 'Avenida Egisto Sicchieri', '800', 'Jardim Alvorada', 'Sertãozinho', 'SP'),
-    (53, 'Rua XV de Novembro', '450', 'Centro', 'Cravinhos', 'SP'),
-    (54, 'Avenida Rita Cândida Nogueira', '110', 'Jardim Itamarati', 'Cravinhos', 'SP'),
-    (55, 'Rua Santos Dumont', '33', 'Centro', 'Dumont', 'SP'),
-    (56, 'Avenida Dr. Pio Dufles', '900', 'Centro', 'Pontal', 'SP'),
-    (57, 'Rua Prudente de Moraes', '1500', 'Centro', 'Ribeirão Preto', 'SP'),
-    (58, 'Avenida Costábile Romano', '1200', 'Ribeirânia', 'Ribeirão Preto', 'SP'),
-    (59, 'Rua José Bonifácio', '600', 'Centro', 'Ribeirão Preto', 'SP'),
-    (60, 'Avenida Senador César Vergueiro', '450', 'Jardim Irajá', 'Ribeirão Preto', 'SP'),
-    (61, 'Rua Professor João Salles Puppo', '300', 'City Ribeirão', 'Ribeirão Preto', 'SP'),
-    (62, 'Avenida Santa Luzia', '150', 'Jardim Sumaré', 'Ribeirão Preto', 'SP'),
-    (63, 'Rua João Penteado', '800', 'Boulevard', 'Ribeirão Preto', 'SP'),
-    (64, 'Avenida do Café', '1200', 'Vila Tibério', 'Ribeirão Preto', 'SP'),
-    (65, 'Rua Javaé', '45', 'Ipiranga', 'Ribeirão Preto', 'SP'),
-    (66, 'Avenida Dom Pedro I', '1100', 'Ipiranga', 'Ribeirão Preto', 'SP'),
-    (67, 'Rua General Glicério', '300', 'Vila Virgínia', 'Ribeirão Preto', 'SP'),
-    (68, 'Avenida Luzitana', '900', 'Parque Ribeirão', 'Ribeirão Preto', 'SP'),
-    (69, 'Rua Manoel de Macedo', '120', 'Vila Albertina', 'Ribeirão Preto', 'SP'),
-    (70, 'Avenida General Euclides de Figueiredo', '1500', 'Adelino Simioni', 'Ribeirão Preto', 'SP'),
-    (71, 'Rua Dr. Romeu Pereira', '44', 'Alto da Boa Vista', 'Ribeirão Preto', 'SP'),
-    (72, 'Avenida Professor João Fiúsa', '3100', 'Jardim Olhos d Água', 'Ribeirão Preto', 'SP'),
-    (73, 'Rua Chile', '780', 'Irajá', 'Ribeirão Preto', 'SP'),
-    (74, 'Rua Platina', '15', 'Vila Recreio', 'Ribeirão Preto', 'SP'),
-    (75, 'Avenida Jerônimo Gonçalves', '500', 'Centro', 'Ribeirão Preto', 'SP'),
-    (76, 'Rua Américo Brasiliense', '400', 'Centro', 'Ribeirão Preto', 'SP'),
-    (77, 'Rua Visconde de Inhaúma', '1100', 'Centro', 'Ribeirão Preto', 'SP'),
-    (78, 'Avenida Francisco Junqueira', '2500', 'Jardim Paulista', 'Ribeirão Preto', 'SP'),
-    (79, 'Rua Henrique Dumont', '800', 'Jardim Paulista', 'Ribeirão Preto', 'SP'),
-    (80, 'Avenida Treze de Maio', '1400', 'Jardim Paulista', 'Ribeirão Preto', 'SP'),
-    (81, 'Rua Camilo de Mattos', '300', 'Jardim Paulista', 'Ribeirão Preto', 'SP'),
-    (82, 'Avenida Meira Júnior', '1100', 'Jardim Mosteiro', 'Ribeirão Preto', 'SP'),
-    (83, 'Rua Capitão Salomão', '600', 'Campos Elíseos', 'Ribeirão Preto', 'SP'),
-    (84, 'Rua Tamandaré', '900', 'Campos Elíseos', 'Ribeirão Preto', 'SP'),
-    (85, 'Avenida Saudade', '1200', 'Campos Elíseos', 'Ribeirão Preto', 'SP'),
-    (86, 'Rua Fernão Sales', '450', 'Campos Elíseos', 'Ribeirão Preto', 'SP'),
-    (87, 'Avenida Brasil', '2200', 'Vila Elisa', 'Ribeirão Preto', 'SP'),
-    (88, 'Rua Guiana Inglesa', '400', 'Vila Mariana', 'Ribeirão Preto', 'SP'),
-    (89, 'Avenida Mogiana', '1500', 'Vila Mariana', 'Ribeirão Preto', 'SP'),
-    (90, 'Rua Pernambuco', '600', 'Ipiranga', 'Ribeirão Preto', 'SP'),
-    (91, 'Avenida Rio Branco', '1100', 'Centro', 'Brodowski', 'SP'),
-    (92, 'Rua General Carneiro', '45', 'Centro', 'Brodowski', 'SP'),
-    (93, 'Avenida das Castanheiras', '200', 'Condomínio Guaporé', 'Ribeirão Preto', 'SP'),
-    (94, 'Rua Inácio Luiz Pinto', '800', 'Nova Aliança', 'Ribeirão Preto', 'SP'),
-    (95, 'Avenida Laranjeiras', '150', 'Bonfim Paulista', 'Ribeirão Preto', 'SP'),
-    (96, 'Rua Izabel da Silva', '33', 'Bonfim Paulista', 'Ribeirão Preto', 'SP'),
-    (97, 'Alameda dos Ipês', '90', 'San Marco', 'Ribeirão Preto', 'SP'),
-    (98, 'Rua Abrahão Issa Halack', '450', 'Ribeirânia', 'Ribeirão Preto', 'SP'),
-    (99, 'Avenida Leais Paulista', '800', 'Jardim Irajá', 'Ribeirão Preto', 'SP'),
-    (100, 'Rua Galileu Galilei', '1500', 'Irajá', 'Ribeirão Preto', 'SP')
-]
+enderecos = gerar_enderecos(5000)
 
 ######################################################
 # Main — aqui é onde tudo acontece de verdade!

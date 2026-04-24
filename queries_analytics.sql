@@ -154,8 +154,8 @@ ORDER BY product_mix_count DESC;
 
 
 /* 8. MONITORAMENTO DE RETENÇÃO (CHURN PREVENTIVO)
-   PROBLEMA: Clientes que compram todos os meses são a base do negócio. Identificá-los é vital para prevenção de perda.
-   OBJETIVO: Filtrar clientes que registraram atividade de compra em todos os meses de 2025.
+   PROBLEMA: Clientes que compram quase todos os meses são a base do negócio. Identificá-los é vital para prevenção de perda.
+   OBJETIVO: Filtrar clientes que registraram atividade de compra em pelo menos 9 meses do ano de 2025 (3/4)
 */
 SELECT 
     c.id_customer,
@@ -166,7 +166,7 @@ FROM orders o
 JOIN customer c ON o.id_customer = c.id_customer 
 WHERE STRFTIME('%Y', o.order_date) = '2025' AND o.id_status = 5
 GROUP BY c.id_customer
-HAVING COUNT(DISTINCT STRFTIME('%m', o.order_date)) = 12
+HAVING COUNT(DISTINCT STRFTIME('%m', o.order_date)) >=9
 ORDER BY c.customer_name;
 
 
