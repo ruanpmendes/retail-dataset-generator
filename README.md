@@ -2,74 +2,66 @@
 ![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
 ![Microsoft Power BI](https://img.shields.io/badge/Microsoft_Power_BI-F2C811?style=for-the-badge&logo=microsoft-power-bi&logoColor=black)
 
-🍷 Empório das Gerações: Dataset & Data Engineering
-Este projeto nasceu para resolver um problema comum entre estudantes de dados: bancos de dados de cursos que são pequenos e "engessados". Aqui, você encontrará um ecossistema completo de um Empório Gourmet, modelado do zero, com um gerador automático de dados em Python que cria um histórico de vendas realista e volumoso para prática de SQL e BI.
+<img width="1481" height="830" alt="image" src="https://github.com/user-attachments/assets/86f162ea-41a3-4ae0-89e8-da3a82983cfe" />
 
-🎯 Por que usar este projeto para estudar?
-Volume Realista: Chega de tabelas com 10 linhas. O script gera mais de 40.000 pedidos (2025 - 2026(1° trimestre)), permitindo testar a performance de queries e criar dashboards robustos.
 
-Sazonalidade Programada: Os dados não são aleatórios; eles seguem o comportamento do varejo real, com meses de alta (Dezembro/Black Friday) e meses de baixa (Janeiro), ideal para treinar análise de séries temporais.
+Um ecossistema completo de dados de um Empório Gourmet, com geração sintética e realista de histórico de vendas para elevar o nível das práticas de SQL, Engenharia de Dados e Business Intelligence. A alternativa definitiva aos bancos de dados "engessados" de cursos.
 
-Ciclo de Vida Realista (Status): O script compreende a linha do tempo do varejo. Pedidos de meses anteriores já nascem consolidados (Entregues ou Cancelados), enquanto pedidos do mês atual giram de forma dinâmica (Pendentes, Processando, Em Trânsito), perfeito para simular funis de logística.
+## 🎯 Objetivo do Projeto
+Resolver o problema da escassez de bases de dados volumosas e realistas para estudantes e profissionais de dados. O projeto simula a operação completa de um varejo com **sazonalidade programada** (picos na Black Friday/Dezembro e baixas em Janeiro) e **ciclo de vida logístico real**, permitindo análises complexas, testes de performance de queries e criação de dashboards robustos.
 
-Regras de Negócio no Motor (Triggers): O banco de dados não é "burro". Ele conta com um sistema de gatilhos automáticos que gerenciam o estoque em tempo real, auditam mudanças de preço e impedem exclusões acidentais (Soft Delete).
+## 🛠️ Stack Tecnológica
+- **Engine de Dados:** Python 3.x (Geração de massa de dados sintéticos)
+- **Banco de Dados:** SQLite (Estrutura relacional normalizada com 10 tabelas)
+- **Consultas & Validação:** SQL (Analytics & Triggers)
+- **Visualização & BI:** Microsoft Power BI
 
-Modelagem Profissional: Estrutura relacional normalizada com 10 tabelas, utilizando Chaves Estrangeiras, Constraints e tipos de dados padronizados.
+## 📂 Arquitetura e Estrutura dos Dados
+O banco foi desenhado seguindo modelagem profissional com Chaves Estrangeiras, Constraints e tipos de dados padronizados.
+- **Volume:** +40.000 pedidos (Histórico de 2025 e 1º trimestre de 2026).
+- **Tabelas Principais:**
+  - `Vendas (Orders & Items)`: Faturamento e ticket médio.
+  - `Clientes & Endereços`: Dados demográficos e geográficos para mapas de calor.
+  - `Categorias & Produtos`: Mix de itens gourmet.
+  - `Fornecedores`: Gestão de custos.
+  - `Status de Pedidos`: Dimensão isolada para rastreio logístico.
+  - `Logs de Auditoria`: Rastreamento de alterações de preços.
 
-Foco em BI: Dados gerados com distribuição horária e geográfica para prática de mapas de calor e logística.
+## ⚙️ Funcionalidades Avançadas no Motor (Triggers)
+Para simular um ambiente de produção blindado contra falhas humanas, o banco opera com 6 automações integradas via script:
+1. **Gestão de Estoque Dinâmica:** Baixa automática na venda e estorno no cancelamento.
+2. **Soft Delete:** Intercepta `DELETE` na tabela de pedidos, bloqueando a exclusão e alterando o status para 'Canceled'.
+3. **Data Cleansing On-the-fly:** Limpeza e padronização instantânea de e-mails de clientes (remoção de espaços e conversão para caixa baixa).
+4. **History Log (Auditoria):** Escuta alterações na coluna de preços e grava o histórico "De/Para" em uma tabela isolada.
 
-🛠️ Tecnologias Utilizadas
-Python 3.x: Engine de geração de massa de dados sintéticos.
-
-SQLite: Banco de dados relacional (SQL) portátil e de fácil configuração.
-
-DBeaver: Sugerido para gestão e prototipagem de consultas.
-
-🗂️ Estrutura do Banco de Dados
-O banco simula uma operação real de e-commerce/varejo:
-
-Categorias & Produtos: Mix diversificado de itens gourmet.
-
-Fornecedores: Gestão de custos e histórico de compras.
-
-Clientes & Endereços: Localizações variadas para análise de frete e região.
-
-Vendas (Orders & Items): Tabela transacional rica para análise de faturamento e ticket médio.
-
-Status de Pedidos: Tabela de dimensão isolada para garantir a integridade do ciclo de vida da venda.
-
-Logs de Auditoria: Rastreamento invisível de alterações de preços dos produtos.
-
-📊 Desafios de SQL Inclusos
-O repositório conta com um arquivo queries_analytics.sql contendo 10 problemas de negócio resolvidos, prontos para serem usados como guia de estudo:
-
-📊 Desafios de SQL Inclusos
-O repositório conta com um arquivo `queries_analytics.sql` contendo 12 problemas de negócio resolvidos, prontos para serem usados como guia de estudo:
-
+## 💡 Problemas de Negócio Resolvidos (SQL Analytics)
+O repositório inclui o arquivo `queries_analytics.sql` com 12 problemas práticos de negócio resolvidos, prontos para análise:
 - **Rentabilidade:** Cálculo de margem unitária por produto.
-- **Fidelidade:** Identificação de clientes recorrentes (Retention).
+- **Fidelidade (Retention):** Identificação de clientes recorrentes.
 - **Cross-Sell:** Análise de eficiência de carrinho (pedidos de item único).
-- **Operação:** Identificação de horários de pico (Morning, Afternoon, Evening).
-- **Logística:** Monitoramento do funil de vendas e distribuição de status (Window Functions).
-- **Cancelamentos:** Evolução mensal da taxa de perda / Cancel Rate (Agregação Condicional).
+- **Operação:** Identificação de horários de pico.
+- **Logística (Window Functions):** Monitoramento do funil de vendas e distribuição de status.
+- **Cancelamentos:** Evolução mensal da taxa de perda (Cancel Rate) via agregação condicional.
 
-⚙️ Automações e Arquitetura Avançada (Triggers)
-Para simular um ambiente de produção blindado contra falhas humanas, o banco conta com 6 automações (Triggers) integradas nativamente via script:
+## 🚀 Como Executar o Projeto
 
-Gestão de Estoque Dinâmica: Subtrai o estoque automaticamente na venda e realiza o estorno completo caso o pedido seja cancelado ou um item seja removido.
+**Pré-requisitos:** Python 3.x, Ferramenta de Gestão SGBD (DBeaver, SQLite Studio) ou Power BI.
 
-Soft Delete (Trava de Segurança): Intercepta comandos DELETE na tabela de pedidos, bloqueando a exclusão e alterando o status para 'Canceled'.
+1. **Clone este repositório:**
+   
+   git clone https://github.com/ruanpmendes/retail-dataset-generator
 
-Data Cleansing On-the-fly: Limpa e padroniza e-mails de clientes (espaços e caixa baixa) no exato milissegundo em que entram no banco.
+2. Gere a massa de dados:
+   Execute o motor em Python para criar o arquivo emporio_geracoes.db com todo o histórico:
 
-Auditoria (History Log): Escuta alterações específicas na coluna de preços e grava o histórico de "De/Para" em uma tabela isolada de Logs.
+   python main.py
+   
+4. Conecte e Explore:
 
-🚀 Como utilizar:
-Clone o repositório: Tenha os arquivos em sua máquina.
+   Abra o arquivo .db gerado no DBeaver/SQLite Studio para rodar os desafios do queries_analytics.sql.
 
-Gere seus dados: Execute o main.py. Ele criará o arquivo emporio_geracoes.db automaticamente com o histórico de 2025 e 2026.
+   Conecte o banco diretamente ao Power BI para modelar e visualizar as métricas.
 
-Conecte e Estude: Abra o arquivo .db em qualquer ferramenta SQL (DBeaver, SQLite Studio) ou conecte-o diretamente ao Power BI / Excel para criar visualizações.
-
-🤝 Contribuição e Propósito
-Este projeto é aberto para estudantes e entusiastas de dados. Se você está cansado de praticar com o banco "Northwind" ou "Sakila", este dataset foi feito para você elevar o nível das suas análises.
+🤝 Autor
+Ruan Mendes - https://www.linkedin.com/in/ruan--mendes/
+   
