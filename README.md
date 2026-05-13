@@ -2,10 +2,10 @@
 ![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
 ![Microsoft Power BI](https://img.shields.io/badge/Microsoft_Power_BI-F2C811?style=for-the-badge&logo=microsoft-power-bi&logoColor=black)
 
+🔗 Clique na imagem para interagir com o projeto completo  
 <a href="https://app.fabric.microsoft.com/view?r=eyJrIjoiNTVlYTIzMGEtZDgxMy00MTBmLThlMTAtMzI5MjQ3YzZhMGM5IiwidCI6ImQ0ZjBiOGY0LTQ2NTAtNDNmYi05YWFiLWE1YmM4OGRkMDM0NSJ9" target="_blank">
     <img width="1481" height="830" alt="image" src="https://github.com/user-attachments/assets/86f162ea-41a3-4ae0-89e8-da3a82983cfe" />
 </a>
-
 
 Um ecossistema completo de dados de um Empório Gourmet, com geração sintética e realista de histórico de vendas para elevar o nível das práticas de SQL, Engenharia de Dados e Business Intelligence. A alternativa definitiva aos bancos de dados "engessados" de cursos.
 
